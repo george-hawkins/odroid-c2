@@ -1,3 +1,8 @@
+Parts
+=====
+
+See the [Mouser parts list](http://htmlpreview.github.io/?https://github.com/george-hawkins/odroid-c2/blob/master/parts/parts-mouser.htm) and a similar [parts list from Digikey](http://htmlpreview.github.io/?https://github.com/george-hawkins/odroid-c2/blob/master/parts/parts-digikey.htm)
+
 Metric vs imperial
 ------------------
 
