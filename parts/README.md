@@ -1,7 +1,9 @@
 Parts
 =====
 
-See the [Mouser parts list](http://htmlpreview.github.io/?https://github.com/george-hawkins/odroid-c2/blob/master/parts/parts-mouser.htm) and a similar [parts list from Digikey](http://htmlpreview.github.io/?https://github.com/george-hawkins/odroid-c2/blob/master/parts/parts-digikey.htm)
+See the [Mouser parts list](https://rawgit.com/george-hawkins/odroid-c2/master/parts/parts-mouser.htm) and a similar [parts list from Digikey](https://rawgit.com/george-hawkins/odroid-c2/master/parts/parts-digikey.htm)
+
+Note: those list links use [rawgit.com](https://rawgit.com/) to display the HTML pages (rather than just show their HTML content) - this works OK for the Digikey list and less well for the Mouser list. Cloned and viewed locally the Mouser list looks fine.
 
 Metric vs imperial
 ------------------
