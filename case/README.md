@@ -1,4 +1,4 @@
-Odroid octogon case
+Odroid octagon case
 ===================
 
 Images created in Inkscape by George Hawkins. The SVG images were created using Inkscape.
