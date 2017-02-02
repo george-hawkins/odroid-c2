@@ -126,43 +126,43 @@ Attach the eMMC module to the Odroid C2, connect it to the network and power it 
 
 First create an `odroid` user (for an explanation see later):
 
-    $ useradd odroid --create-home --shell /bin/bash --password odroid
-    $ usermod --append --groups adm,disk,lp,dialout,fax,voice,cdrom,floppy,sudo,audio,operator,src,video,plugdev,staff,users,input odroid
+    # useradd odroid --create-home --shell /bin/bash --password odroid
+    # usermod --append --groups adm,disk,lp,dialout,fax,voice,cdrom,floppy,sudo,audio,operator,src,video,plugdev,staff,users,input odroid
 
 Unlike the non-minimum distribution backports is already installed - you can confirm like so:
 
-    $ apt-cache policy | fgrep backports
+    # apt-cache policy | fgrep backports
 
 So let's get straight on with getting everything up-to-date:
 
-    $ apt-get update
-    $ apt-get dist-upgrade
+    # apt-get update
+    # apt-get dist-upgrade
 
-    $ ls -l /var/run/reboot-required
+    # ls -l /var/run/reboot-required
 
 The `reboot-required` file exists (but unlike similar situation with the non-minimal image it contains nothing).
 
 Let's check the current kernel version and then reboot:
 
-    $ uname -r
+    # uname -r
     3.14.65-73
-    $ reboot now
+    # reboot now
 
 After logging in again after the reboot:
 
-    $ uname -r
+    # uname -r
     3.14.79-105
 
 So the kernel was upgraded. Now let's purge any old kernels:
 
-    $ dpkg --list | grep linux-image
-    $ dpkg --list | grep linux-headers
-    $ apt-get purge --yes linux-image-c2 linux-image-3.14.65-73
+    # dpkg --list | grep linux-image
+    # dpkg --list | grep linux-headers
+    # apt-get purge --yes linux-image-c2 linux-image-3.14.65-73
 
 And do a final cleanup:
 
-    $ sudo apt-get autoremove
-    $ sudo apt-get clean
+    # sudo apt-get autoremove
+    # sudo apt-get clean
 
 Unlike the non-minimal image there was no complaint during the `clean` step about `apt-fast` as `apt-fast` isn't installed.
 
@@ -170,13 +170,13 @@ After all this `df` shows that there's 22MB less available on `/`.
 
 If you want you can restore the apt file we moved earlier:
 
-    $ mv 20auto-upgrades /etc/apt/apt.conf.d
+    # mv 20auto-upgrades /etc/apt/apt.conf.d
 
 This will cause it to do a daily update and automatically install security updates (see link up above for more details).
 
 And turn off that LED:
 
-    $ echo none > /sys/class/leds/blue\:heartbeat/trigger
+    # echo none > /sys/class/leds/blue\:heartbeat/trigger
 
 ---
 
@@ -196,7 +196,7 @@ Instead you'll get the following error:
 
 Aside: I diagnosed this by copying an arm64 `lsof` binary onto the eMMC module when setting it up and using it like so:
 
-    $ lsof | fgrep /var/lib/dpkg
+    # lsof | fgrep /var/lib/dpkg
 
 From the process ID shown I could see it was locked by `unattended-upgrade` and that the parent of this process was `apt.systemd.daily`.
 
@@ -219,7 +219,7 @@ They appear to be the remain of a 4.X kernel left around by mistake by Hardkerne
 
 If you then look at what images are installed `4.4.0-31` isn't listed as one of them:
 
-    $ dpkg --list | grep linux-image
+    # dpkg --list | grep linux-image
     ii  linux-image-3.14.65-73     20160802    arm64    Linux kernel binary image for version 3.14.65-73
     ii  linux-image-3.14.79-104    20170119    arm64    Linux kernel binary image for version 3.14.79-104
     ii  linux-image-c2             73-1        arm64    Linux Kernel 3.14 Long Term for ODROID-C2
