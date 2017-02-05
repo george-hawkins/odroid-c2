@@ -1,0 +1,23 @@
+#!/bin/bash -e
+
+# An incredibly inefficient and crude attempt at directly installing the minimum number of packages needed to to match a listed set of packages.
+# I.e. the intention is to pull in the big fish first - those that themselves pull in the largest number of dependencies.
+# The resulting order of installation ends up in added.txt with each line preceded by the number of additional packages pulled in by the installation of the given package.
+
+DESIRED_PKGS='pkg-odroid-c2.txt'
+
+while true
+do
+	apt list --installed | sed 's?/.*??' | tail -n +2 | sort > pkg-local.txt 
+	comm -23 $DESIRED_PKGS pkg-local.txt > extras.txt
+	cat extras.txt | while read line
+	do
+		deps=$(apt-get install --dry-run $line | awk '/additional packages will be installed:/ { getline; print $0 }')
+		echo $(echo $deps | wc -w) $line
+	done > deps.txt
+	next=$(sort -n deps.txt | tail -1)
+	echo $next >> added.txt
+	next=$(echo $next | sed 's/^.* //')
+	apt-get install --yes $next
+	cp deps.txt deps.txt.old
+done

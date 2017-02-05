@@ -67,6 +67,8 @@ Give the Odroids there own RSA key (so it can be revoked separately if needed):
 
 Go to <https://github.com/settings/keys> and click "New SSH key" button and add the public part of the key.
 
+Note: keys are only needed if one plans to push changes back to a cloned repo - otherwise one can simply use https (rather than ssh) repo URLs.
+
 Install Xenial backports to fix a bug with `appstreamcli` that causes `apt-get update` to complain about apparent metadata errors (see [Ask Ubuntu](http://askubuntu.com/q/854168)):
 
     $ sudo apt install appstream/xenial-backports
@@ -85,7 +87,7 @@ The full details can be found here - <http://www.webupd8.org/2012/09/install-ora
 
 Install git and maven:
 
-    $ apt-get install git
+    $ sudo apt-get install git
     $ sudo apt-get install maven
 
 Maven needs `JAVA_HOME` to be set:
@@ -274,12 +276,17 @@ Also oddly `sudo` started complaining about being `unable to resolve host ubuntu
 
 Then on with the process...
 
-    $ dpkg --list | grep 'linux-image' | awk '{ print $2 }' | sort -V | sed -n '/'"$(uname -r | sed "s/\([0-9.-]*\)-\([^0-9]\+\)/\1/")"'/q;p' | xargs sudo apt-get -y purge
-    $ dpkg --list | grep 'linux-headers' | awk '{ print $2 }' | sort -V | sed -n '/'"$(uname -r | sed "s/\([0-9.-]*\)-\([^0-9]\+\)/\1/")"'/q;p' | xargs sudo apt-get -y purge
+    $ dpkg --list | grep linux-image
+    $ dpkg --list | grep linux-headers
+    $ uname -r
 
-This remove old kernel images and there related headers (see this [SO answer](http://askubuntu.com/a/254585)).
+The `uname` line will show the current kernel (what you want to keep) while the two `dpkg` lines will show current and old images and headers. Most probably the headers line will show nothing - and on a newly installed cloud image the images line will also probably show nothing, on the standard Odroid C2 Ubuntu image it showed 12 kernel images (but no headers) so 11 could be removed.
 
-On the cloud image this step did nothing (there were no old images) - when repeating these steps on the Odroid it cleared off 11 old kernel images (but no headers).
+To remove the unused images (and/or headers) use:
+
+    $ sudo apt-get purge --yes pkg1 pkg2 ...
+
+This is all derived from this [SO answer](http://askubuntu.com/a/254585) with the clever `awk` etc. steps removed as Odroid have used non-numeric kernel version names that break the assumptions shown.
 
     $ sudo apt-get autoremove
     $ sudo apt-get clean
@@ -291,6 +298,8 @@ After these steps `df` shows that disk usage on `/` has actually gone up by 27 M
 The same set of steps on the Odroid went much the same except...
     
 During the upgrade it warns you about changes to `boot.ini` - if you compare the old and new `boot.ini` after the changes you can see that both the old and new file are from Odroid, i.e. there's no issue of some Odroid specific version being overwritten with an Ubuntu generic version, and if you look at the changes there's nothing very interesting.
+
+During the kernel image removal step I was a little nervous removing `linux-image-c2` even though it wasn't the current kernel - but all seemed to go fine.
 
 Running the `clean` step resulted in the output:
 

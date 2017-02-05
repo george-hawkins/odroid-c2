@@ -126,8 +126,11 @@ Attach the eMMC module to the Odroid C2, connect it to the network and power it 
 
 First create an `odroid` user (for an explanation see later):
 
-    # useradd odroid --create-home --shell /bin/bash --password odroid
+    # useradd odroid --create-home --shell /bin/bash
+    # echo odroid:odroid | chpasswd
     # usermod --append --groups adm,disk,lp,dialout,fax,voice,cdrom,floppy,sudo,audio,operator,src,video,plugdev,staff,users,input odroid
+
+Note: `useradd` has a `--password` option but this expects an already encrypted password (see this [Ask Ubuntu answer](http://askubuntu.com/a/668134) and this [UNIX Stack Exchange answer](http://unix.stackexchange.com/a/81248/111626)).
 
 Unlike the non-minimum distribution backports is already installed - you can confirm like so:
 
@@ -342,11 +345,7 @@ To change this to e.g. 'Europe/Zurich':
 
     # timedatectl set-timezone Europe/Zurich
 
-TODO:
-
-* Disable password based ssh login.
-* Disable root ssh login altogether
-* Create a spark user and use `ssh-copy-id` (see [Ask Ubuntu question](http://askubuntu.com/q/4830) for alternatives that don't require `ssh-copy-id`).
+---
 
 Summary of additional steps
 ---------------------------
@@ -360,3 +359,51 @@ Assuming the Odroid system is already up and running the additional step to setu
     # timedatectl set-timezone Europe/Zurich
     # sed -i 's/AcceptEnv\s\+LANG/#&/' /etc/ssh/sshd_config
     # systemctl restart sshd
+
+---
+
+Benchmarks
+----------
+
+OK - it's time to stop doing everything as root. This step is done logged in as `odroid`.
+
+Unlike the non-minimal image OpenJDK is not already installed, so the following step isn't needed:
+
+    $ sudo apt-get purge 'openjdk-*'
+
+Installing the Oracle JDK and Maven:
+
+    $ sudo add-apt-repository ppa:webupd8team/java
+    $ sudo apt-get update
+    $ sudo apt-get install oracle-java8-installer
+    $ sudo apt-get install git
+    $ sudo apt-get install maven
+    $ JAVA_HOME=/usr/lib/jvm/java-8-oracle mvn -version
+
+This pulls in about 400MB. Now to clone and compile the benchmarks:
+
+    $ git clone https://github.com/george-hawkins/naive-benchmarks.git
+    $ cd naive-benchmarks/
+    $ mvn clean compile
+
+To run the benchmarks first run `free -m` and then set `MAVEN_OPTS` according to the value shown as available:
+
+    $ export MAVEN_OPTS='-Xms1600m -Xmx1600m'
+    $ export JAVA_HOME=/usr/lib/jvm/java-8-oracle
+    $ time mvn exec:java@benchmarks -Dconfig.file=benchmarks-odroid-c2.conf
+
+The benchmarks ran in much the same time as on the fully loaded non-minimal image.
+
+For record the times were 303s for `processor`, 278s for `memory`, 296s for `disk` and 293s for `network`.
+
+The memory result is slightly faster, about 8% faster, but I haven't investigated if this difference can be consistently demonstrated.
+
+The time for the `network` benchmark is always remarkably consistent - 293s here as it has been on the non-minimal image and my x64_86 box.
+
+---
+
+TODO:
+
+* Disable password based ssh login.
+* Disable root ssh login altogether
+* Create a spark user and use `ssh-copy-id` (see [Ask Ubuntu question](http://askubuntu.com/q/4830) for alternatives that don't require `ssh-copy-id`).
