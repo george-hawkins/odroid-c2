@@ -174,10 +174,6 @@ If you want you can restore the apt file we moved earlier:
 
 This will cause it to do a daily update and automatically install security updates (see link up above for more details).
 
-And turn off that LED:
-
-    # echo none > /sys/class/leds/blue\:heartbeat/trigger
-
 ---
 
 Explanations
@@ -241,3 +237,126 @@ If you look in `/var/lib/dpkg/info/bootini.postinst` you'll see on the last line
     usermod -a -G sys odroid
 
 So to stop this failing we create this user first. The various options specified for `usermod` and the groups specified with `usermod` try to match as near as possible the `odroid` user found on the non-minimal image.
+
+Further issues
+--------------
+
+If you check for failed systemd services you'll see that ureadahead always fails:
+
+```text
+# systemctl --failed
+UNIT               LOAD   ACTIVE SUB    DESCRIPTION
+* ureadahead.service loaded failed failed Read required files in advance
+```
+
+If you then look at the status output you'll see more information:
+
+```text
+# systemctl status ureadahead.service
+...
+Feb 11 17:28:00 odroid64 ureadahead[183]: ureadahead: Error while tracing: No such file or directory
+```
+
+If you then try to start ureadahead direcly with strace, to see what file was the problem, you see:
+
+```text
+# strace /sbin/ureadahead --force-trace --debug --verbose
+...
+openat(3, "events/fs/do_sys_open/enable", O_RDWR) = -1 ENOENT (No such file or directory)
+close(3)                                = 0
+write(2, "ureadahead: Error while tracing:"..., 59ureadahead: Error while tracing: No such file or directory
+) = 59
+```
+
+If you Google for this you'll find the kernel simply doesn't contain the patch necessary for ureadahead to do its work. See:
+
+* <http://unix.stackexchange.com/questions/308801/ureadahead-error-while-tracing-possible-kernel-patch-problem>
+* <https://bugs.launchpad.net/ubuntu/+source/ureadahead/+bug/677443>
+
+This is presumably a consequence of running an up-to-date Ubuntu version on increasingly aged kernel while waiting for mainline kernel support for the Odroid C2 CPU.
+
+See this thread for more on progress in getting Amlogic S905 support into the mainline: <http://forum.odroid.com/viewtopic.php?f=135&t=22717>
+
+---
+
+### Blue LED
+
+The intensly bright blue LED on Odroid C2 board is annoying if left to pulse continually but is useful to signal that startup or shutdown has completed.
+
+To enable it, only during these phases, install the [`blue-led.service`](blue-led.service) file that's included here.
+
+If everything is already up and running you can install it like so:
+
+    $ scp blue-led.service root@192.168.1.206:/etc/systemd/system
+    $ ssh root@192.168.1.206
+    # systemctl daemon-reload
+
+Either way once the system is up and running you can enable the service like so:
+
+    $ ssh root@192.168.1.206
+    # systemctl enable blue-led
+
+If you reboot the system then on subsequent startups the blue LED will go from solid to flashing to off - when it goes off the system should be ready for you to login.
+
+Similarly when the system is _subsequently_ shutdown the blue LED will start flashing and then go off (leaving just the red LED indicating that the system still has power).
+
+The shutdown is far quicker than the startup.
+
+When running the non-minimal Odroid C2 image shutting down the system causes you to be logged off immediatelly - for whatever reason this doesn't seem to happen with the minimal image - and you just end up stuck.
+
+To kill your ssh session see this [Ask Ubuntu answer](http://askubuntu.com/a/29952) - in short just press enter, then `~` (tilde) and then `.` (period).
+
+---
+
+### Locale
+
+The minimal image has a very limited number of locales installed. You can list them like so:
+
+    # locale -a
+
+So it's probably best to tell the ssh daemon to ignore the locale sent by remote clients or you may end up with a confused locale setup on logging in via ssh.
+
+To see what locale settings have been propagated via ssh:
+
+    # locale
+
+To ignore the locale from remote clients:
+
+    # sed -i 's/AcceptEnv\s\+LANG/#&/' /etc/ssh/sshd_config
+    # systemctl restart sshd
+
+Now the locale settings will be taken from `/etc/default/locale` rather than the remote client. Log out and log back in and enter:
+
+    # locale
+
+Depending on how in sync the remote client and the Odroid C2 are, in terms of locale, you may or may not see a different set of locale values displayed.
+
+### Time zone
+
+By default the time zone is UTC for the minimal image:
+
+    # date +%Z
+    UTC
+
+To change this to e.g. 'Europe/Zurich':
+
+    # timedatectl set-timezone Europe/Zurich
+
+TODO:
+
+* Disable password based ssh login.
+* Disable root ssh login altogether
+* Create a spark user and use `ssh-copy-id` (see [Ask Ubuntu question](http://askubuntu.com/q/4830) for alternatives that don't require `ssh-copy-id`).
+
+Summary of additional steps
+---------------------------
+
+Assuming the Odroid system is already up and running the additional step to setup the blue LED service, locale and time zone are:
+
+    $ scp blue-led.service root@192.168.1.206:/etc/systemd/system
+    $ ssh root@192.168.1.206
+    # systemctl daemon-reload
+    # systemctl enable blue-led
+    # timedatectl set-timezone Europe/Zurich
+    # sed -i 's/AcceptEnv\s\+LANG/#&/' /etc/ssh/sshd_config
+    # systemctl restart sshd

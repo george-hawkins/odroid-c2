@@ -1,0 +1,36 @@
+[Unit]
+Description=Turn off blue LED
+After=multi-user.target
+# Setting 'After' to the same value as 'WantedBy' means this service will run after everything else configured for the given target.
+
+# Package installed service files are found in /lib/systemd/system
+#
+# While locally installed service files go in /etc/systemd/system
+#
+# To install:
+#     # cp X.service /etc/systemd/system
+#
+# After installing a new service or editing an existing one:
+#     # systemctl daemon-reload
+#
+# To start it:
+#     # systemctl start X
+#
+# To have it automatically start at boot:
+#     # systemctl enable X
+#
+# To see the service's output to stdout/stderr:
+#     # journalctl --unit X
+#
+# For more details see:
+# + https://wiki.archlinux.org/index.php/Systemd
+# + http://unix.stackexchange.com/questions/47695/how-to-write-startup-script-for-systemd
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c 'echo none > /sys/class/leds/blue:heartbeat/trigger'
+ExecStop=/bin/sh -c 'echo heartbeat > /sys/class/leds/blue:heartbeat/trigger'
+
+[Install]
+WantedBy=multi-user.target
