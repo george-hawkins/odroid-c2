@@ -407,3 +407,135 @@ TODO:
 * Disable password based ssh login.
 * Disable root ssh login altogether
 * Create a spark user and use `ssh-copy-id` (see [Ask Ubuntu question](http://askubuntu.com/q/4830) for alternatives that don't require `ssh-copy-id`).
+* Run benchmark one more time once everything is in octogon - to check power supply and longer cables (without shielding) don't affect things.
+
+---
+
+Spark
+-----
+
+There are no end of web pages on getting started with Spark - many of them already going stale.
+
+The best initial course of actions seems to be:
+
+* Download Spark and go through the included README.
+* Work through <http://spark.apache.org/docs/latest/quick-start.html>
+* Work through the introductory notebooks which can be accessed as part of the Databricks [Community Edition](https://community.cloud.databricks.com/).
+
+The Databricks notebooks aren't terribly well maintained, there are broken links, spelling mistakes and a mix of Scala 1.X and 2.X usages.
+
+### Notes
+
+Download the latest version from <http://spark.apache.org/downloads.html>, i.e. the default download option that's shown.
+
+Look through the `README`.
+
+Running `spark-shell` for the first time will create the directory `metastore_db`, along with the file `derby.log`, in your current directory (and your history ends up in `~/.scala_history`).
+
+Running something like `run-example SparkPi` results in the directory `spark-warehouse` being created in your current directory.
+
+Note: the Scala REPL supports tab-completion for methods etc.
+
+Then work through <http://spark.apache.org/docs/latest/quick-start.html>
+
+Note: using `local[4]` with the `--master` argument to `spark-submit` (the final example) means run the job locally with four worker threads - see [master URLs](http://spark.apache.org/docs/latest/submitting-applications.html#master-urls).
+
+When `spark-shell` starts up it shows a URL for a Web UI (that is only available while `spark-shell` itself is running).
+
+If you run something like this:
+
+    scala> val textFile = sc.textFile("README.md")
+    scala> val wordCount = textFile.flatMap(_.split(" ")).map((_, 1)).reduceByKey(_ + _)
+    scala> wordCount.collect()
+
+Then this results in a job that you can look at in the Web UI - if you click on the job you can then look at a DAG visualization of it and click on the various stages for more information.
+
+You can use the information shown to help improve the performance of your jobs.
+
+Note: there's no job in this example until the `collect()` step - everything previously is just lazy setup.
+
+---
+
+Once you've completed the quick start you can move on to the Databricks notebook "A Gentle Introduction to Apache Spark on Databricks".
+
+Various introductory sites link directly to this notebook but it makes more sense to access it as a notebook within Databricks.
+
+It's the first notebook you see in the featured notebooks section of the <https://community.cloud.databricks.com/> main page. If you access it this way then it's already imported into your workspace.
+
+The workspace layout seemed a little confusing initially - just go to users, there you see the email address you registered with, right click on this and you can create or import additional notebooks here.
+
+If you carry on from the "gentle" notebook to the data scientist and data engineer notebooks (mentioned in the introductory paragraph) you will have to import these explicitly.
+
+Initially the "gentle" notebooks is fairly slow going. The section on the RDD, DataFrame and Dataset clarifies how these three ideas relate. RDD is the original, then came DataFrames (similar to the same named concept in Pandas (Python) and R) and finally Dataset is the newest collection - according to the notebook it "provides the typed interface that is available in RDDs while providing a lot of conveniences of DataFrames. It will be the core abstraction going forward."
+
+The Databricks "gentle" introduction is part of a series that includes two further notebooks one for data engineers, that's worth going through, and one for data scientists which is of less value (unless you are a data scientist).
+
+---
+
+### Notes on the Databricks notebooks
+
+Within a notebook double click any textual cells to see and edit the markdown.
+
+Notebooks support tab completion but it seems a bit flakey, pressing tab a few times often seems necessary and sometimes it just gets things completely wrong.
+
+It turns out that in the `org.apache.spark.sql` package class one finds that [`DataFrame` is defined in terms of `Dataset`](https://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.package@DataFrame=org.apache.spark.sql.Dataset[org.apache.spark.sql.Row]):
+
+    type DataFrame = Dataset[Row]
+
+You can see a nice little graphic covering this at the end of the [Databricks Quick Start](https://databricks.com/product/getting-started-guide/quick-start) that also introduces the idea of `DataFrame`, i.e. `Dataset[Row]`, being the untyped API while `Dataset[T]` is the typed API.
+
+From the "gentle" notebook:
+
+> This is one of the core reasons that users should be focusing on using DataFrames and Datasets instead of the legacy RDD API.
+> With DataFrames and Datasets, Apache Spark will work under the hood to optimize the entire query plan and pipeline entire steps together.
+
+Prior to Spark 2.X you had `SparkContext` and `SQLContext` - they still exist in 2.X but you now have `SparkSession` (which has fields `sparkContext` and `sqlContext`) which tries to provide a unified interface.
+
+Many examples (including those on the Databricks site) still refer to the pre-2.X entities (usually as `sc` and `sqlContext`) while newer examples work with `SparkSession` (usually as `spark`).
+
+Note: in any Databricks notebook `sc`, `sqlContext` and `spark` are immediately available, in `spark-shell` just `sc` and `spark` are immediately available (but as noted `spark.sqlContext` gets you to an `SQLContext`).
+
+`SparkContext` works in terms of the older RDD entities while `SparkSession` works with datasets and dataframes. So:
+
+    sc.parallelize(Seq(1, 2, 3)) // Returns an RDD instance.
+    spark.createDataset(Seq(1, 2, 3)) // Returns a Dataset instance.
+
+The `dbfs:` scheme seems to be optional when using `%fs`, i.e. `%fs ls /...` generates the same result as `%fs ls dbfs:/...`.
+
+Further getting started resources
+---------------------------------
+
+<https://www.simple-talk.com/cloud/cloud-data/start-big-data-apache-spark/> is a more wordy walkthru of:
+
+* <http://spark.apache.org/docs/latest/quick-start.html>
+* The "Gentle Introduction to Apache Spark on Databricks" notebook.
+
+<https://databricks.com/product/getting-started-guide/quick-start> similarly mainly rehashes information from the above two - adding a few extra useful details.
+
+The full Databricks documentation can be found at <https://docs.cloud.databricks.com/docs/latest/databricks_guide/index.html>
+
+[Apache Zeppelin](https://zeppelin.apache.org/) provides a web based notebook implementation that you can use locally that looks extremely similar to the notebook implementation provided by Databricks.
+
+The Hortonworks [Spark in 5 minutes](http://hortonworks.com/hadoop-tutorial/hands-on-tour-of-apache-spark-in-5-minutes/) uses Zeppelin (and the [Hortonworks Sandbox](http://hortonworks.com/hadoop-tutorial/learning-the-ropes-of-the-hortonworks-sandbox/#what-is-the-sandbox) that includes [Ambari](https://ambari.apache.org/) and many other things ready setup) to introduce Spark much as the Databricks "gentle" notebook does. The introduction ends with a link to the more advanced tutorials from Hortonworks.
+
+MapR has a nice [multi-page overview](https://www.mapr.com/ebooks/spark/) of Spark, e.g. the [architectural page](https://www.mapr.com/ebooks/spark/03-apache-spark-architecture-overview.html) provides lots of interesting details, and it has nice sections like ["Hadoop vs. Spark - An Answer to the Wrong Question"](https://www.mapr.com/ebooks/spark/04-hadoop-and-spark-benefits.html). However it doesn't seem to have been updated for Spark 2.X.
+
+The slides for Databricks one day workshop introducing Spark are available - unfortunately there seem to be different versions floating about, there's the [Databricks version](http://training.databricks.com/workshop/itas_workshop.pdf) and there's one [hosted by a professor at Stanford](https://stanford.edu/~rezab/sparkclass/slides/itas_workshop.pdf). The Stanford is from 2014 (and uses Spark 0.9.1) while the one from Databricks is from 2015 (and uses Spark 1.2.0). The Stanford one is interesting as it contains an "Advanced Topics" section that's not in the Databricks version (and despite being earlier includes details about projects like Shark that are mentioned as in-progress in the Databricks version).
+
+The slides are actually readable, i.e. they're not just vague bullet points, and while they only cover low level RDD usage, they're interesting as they go fairly in-depth and cover the whole Spark ecosystem, i.e. all the other projects you're likely to come in contact with when looking at Spark.
+
+Another light introduction is <https://www.infoq.com/articles/apache-spark-introduction>. While it just rehashes the same examples seen elsewhere, when in comes to Spark itself, it (like the Databricks workshop slides) provides a broader view and briefly covers some of the Spark ecosystem and makes some effort to explain the relationship between Spark and Hadoop. Note: the Spark examples use version 1.2.0.
+
+The MapR overview, the Databricks workshop slides and the InfoQ introduction all provide a broader view rather than just providing a straight dive into Spark.
+
+As already noted up above many older Spark related pages involve creating `SparkConf`, `SparkContext` and other entities individually. In Spark 2.X these are all rolled up into a unified entry point called `SparkSession`. Databricks have a nice [blog entry](https://databricks.com/blog/2016/08/15/how-to-use-sparksession-in-apache-spark-2-0.html) introducing `SparkSession` (and discusses how to use it in place of the Spark 1.X constructs).
+
+Moving from `SparkContext` etc. to using `SparkSession` is also covered in a bit more detail by <http://vishnuviswanath.com/spark_session.html>
+
+Next steps
+----------
+
+See <http://spark.apache.org/docs/latest/#where-to-go-from-here>
+
+In particular the [Programming Guide](http://spark.apache.org/docs/latest/programming-guide.html) and the [Cluster Overview](http://spark.apache.org/docs/latest/cluster-overview.html) (in particular the [standalone section](http://spark.apache.org/docs/latest/spark-standalone.html)).
+
