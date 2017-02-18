@@ -14,7 +14,7 @@ Before you insert the eMMC module that you intend to write to (using a USB card 
 
     $ ls /dev/disk/by-id
 
-Now insert the USD card reader with eMMC module and do the same again:
+Now insert the USB card reader with eMMC module and do the same again:
 
     $ ls /dev/disk/by-id
 
@@ -64,7 +64,7 @@ Then wrote it to the eMMC module and safely ejected it:
 
 Unplug and reinsert the USB device - nothing should automount. Now generate an md5 sum for the contents of the disk:
 
-    $ sudo dd if=/dev/sdb bs=512 count=$(($(stat -c%s $IMAGE)/512)) | md5sum
+    $ sudo dd if=$DISK bs=512 count=$(($(stat -c%s $IMAGE)/512)) | md5sum
 
 And verify this against the downloaded image:
 
@@ -123,6 +123,8 @@ Attach the eMMC module to the Odroid C2, connect it to the network and power it 
 
     $ nmap -T4 -F 192.168.1.133/24
     $ ssh root@192.168.1.240
+
+It can take a while the device starts up for the first time (it has to resize disks and other things on the first boot).
 
 First create an `odroid` user (for an explanation see later):
 
@@ -362,6 +364,129 @@ Assuming the Odroid system is already up and running the additional step to setu
 
 ---
 
+Backup
+------
+
+Once you've created the perfect setup you can back it up and restore it to other eMMC modules.
+
+You could use `dd` for this but a better tool is FSArchiver. Ideally you could backup both partitions on the eMMC module with a single command (as described in the [FSArchiver quick start guide](https://www.fsarchiver.org/quickstart.html)). This should be possible with the version of FSArchiver that comes with Yakkety and later but the version on Xenial doesn't support vfat and this is the file system type used for the Odroid C2 boot partition. So you still need to use `dd` for the boot partition and `sfdisk` needs to be used to create the partitions. I've rolled this all up into the two small scripts here [`fs-backup`](fs-backup) and [`fs-restore`](fs-restore).
+
+First:
+
+    $ sudo apt install fsarchiver
+
+Then to backup insert the eMMC module and:
+
+    $ ./fs-backup "$DISK" my-backup-dir
+
+This takes about a minute and creates `my-backup-dir` and stores the partition table and the archived contents of the partitions there.
+
+Then swap in another eMMC module and clone the result to it:
+
+    $ ./fs-restore "$DISK" my-backup-dir
+    $ udisksctl power-off --block-device "$DISK"
+
+Spark slave setup
+-----------------
+
+On the Odroid C2 install the Oracle JDK:
+
+    # add-apt-repository ppa:webupd8team/java
+    # apt-get update
+    # apt-get install oracle-java8-installer
+
+Add a user called `spark`:
+
+    # useradd spark --create-home --shell /bin/bash
+    # echo spark:spark | chpasswd
+    # adduser spark sudo
+    # exit
+
+On your local system copy you public key to the `spark` user and then return to the Odroid one last time as root:
+
+    $ ssh-copy-id spark@192.168.1.240
+    $ ssh root@192.168.1.240
+
+Disable password based login via ssh and disable root login via ssh altogether:
+
+    # sed -i -e 's/PermitRootLogin yes/PermitRootLogin no/' -e 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+    # systemctl restart sshd
+
+Clean out setup steps (including passwords) from history and exit:
+
+    # set +o history
+    # rm .bash_history
+    # exit
+
+Download a prebuilt Spark distribution and install it on the Odroid:
+
+    $ scp spark-2.1.0-bin-hadoop2.7.tgz spark@192.168.1.240:
+    $ ssh spark@192.168.1.240
+    $ tar -xf spark-2.1.0-bin-hadoop2.7.tgz
+    $ rm spark-2.1.0-bin-hadoop2.7.tgz
+    $ cd spark-2.1.0-bin-hadoop2.7
+    $ ./sbin/start-slave.sh spark://192.168.1.133:7077
+    $ cat logs/*worker*.out
+
+Note: `spark-2.1.0-bin-hadoop2.7` is fairly substantial - it contains lots of examples etc. However the `jars` subdirectory dominates everything else - so there's not much to be gained by pruning the examples and such like. If you look at the log output you'll see that the slave uses the classpath:
+
+    .../spark-2.1.0-bin-hadoop2.7/conf/:.../spark-2.1.0-bin-hadoop2.7/jars/*
+
+I.e. it depends on multiple jars in the the `jars` directory, rather than using e.g. a fat jar. So in the end all I remove is the original tar file.
+
+Now stop things, exit and copy over the Spark slave systemd unit file and set things up for automatic startup on boot:
+
+    $ ./sbin/stop-slave.sh 
+    $ exit
+
+    $ scp spark-slave.service spark@192.168.1.240:
+    $ ssh spark@192.168.1.240
+
+    $ sudo mv spark-slave.service /etc/systemd/system
+    $ sudo systemctl daemon-reload
+
+Start the service, check the status, stop it and again check the status:
+
+    $ sudo systemctl start spark-slave
+    $ sudo journalctl --unit spark-slave
+    $ sudo systemctl stop spark-slave
+    $ systemctl status spark-slave
+
+Enable it for automatic start on reboot and then reboot:
+
+    $ sudo systemctl enable spark-slave
+    $ sudo reboot now
+
+If you open the web UI for the master in your browser you should see the slave connect - the Spark slave takes quite a while to startup so this happens a noticeable amount of time after the Odroid has booted.
+
+TODO:
+
+* Uses avahi so you can include nice master URL in spark-slave.service
+* Run benchmark one more time once everything is in octogon - to check power supply and longer cables (without shielding) don't affect things.
+
+---
+
+Spark standalone cluster
+------------------------
+
+TODO: this section used to go before the bit about setting up the Spark slave - it probably needs some restructuring to reflect its new position.
+
+See <http://spark.apache.org/docs/latest/spark-standalone.html>
+
+Using the Spark download unpacked earlier:
+
+    $ cd .../spark-2.1.0-bin-hadoop2.7
+    $ export SPARK_MASTER_HOST=192.168.1.133
+    $ ./sbin/start-master.sh
+    $ fgrep spark: logs/*master*.out                                                                             
+    17/02/15 18:02:33 INFO Master: Starting Spark master at spark://...:7077
+
+There's various other interesting information in the logs, such as web UI and REST endpoints - and various warnings that might be worth examining, e.g. the lack of Hadoop native libraries (see [SO](http://stackoverflow.com/q/19943766/245602)).
+
+Note: I had to explicitly set `SPARK_MASTER_HOST` (to the non-loopback address for my machine, found with `ip -4 -br addr`) as otherwise it defaulted to a loopback address that couldn't be accessed by the Spark slaves (see [SPARK-19657](https://issues.apache.org/jira/browse/SPARK-19657)).
+
+---
+
 Benchmarks
 ----------
 
@@ -399,15 +524,6 @@ For record the times were 303s for `processor`, 278s for `memory`, 296s for `dis
 The memory result is slightly faster, about 8% faster, but I haven't investigated if this difference can be consistently demonstrated.
 
 The time for the `network` benchmark is always remarkably consistent - 293s here as it has been on the non-minimal image and my x64_86 box.
-
----
-
-TODO:
-
-* Disable password based ssh login.
-* Disable root ssh login altogether
-* Create a spark user and use `ssh-copy-id` (see [Ask Ubuntu question](http://askubuntu.com/q/4830) for alternatives that don't require `ssh-copy-id`).
-* Run benchmark one more time once everything is in octogon - to check power supply and longer cables (without shielding) don't affect things.
 
 ---
 
@@ -539,3 +655,85 @@ See <http://spark.apache.org/docs/latest/#where-to-go-from-here>
 
 In particular the [Programming Guide](http://spark.apache.org/docs/latest/programming-guide.html) and the [Cluster Overview](http://spark.apache.org/docs/latest/cluster-overview.html) (in particular the [standalone section](http://spark.apache.org/docs/latest/spark-standalone.html)).
 
+---
+
+Building Spark
+--------------
+
+    $ git clone git@github.com:apache/spark.git
+    $ cd spark
+    $ git tag
+    $ git checkout v2.1.0
+    $ ./dev/change-scala-version.sh 2.11
+    $ build/mvn -T4 -DskipTests clean package
+
+Note: I did not need, as suggested, to increment my maximum JVM heap size or set `ReservedCodeCacheSize`. I think the default heap size with Java 8 on a 64 bit machine with a reasonable amount of memory (16GB in my case) is already very large. However I did initially run out of memory during the build - but this wasn't a JVM issue, it was Chrome (as usual) hogging all the memory - once I quit out of Chrome and released enough memory it built fine.
+
+The use of `change-scala-version` was because Maven errored out with "Failed to execute goal net.alchim31.maven:scala-maven-plugin" and this was the solution (that I found on [SO](http://stackoverflow.com/a/32686011/245602)).
+
+Running in IntelliJ
+-------------------
+
+Importing into IntelliJ is described in the "IDE Setup" section of <http://spark.apache.org/developer-tools.html>
+
+Despite having built everything with Maven it seems necessary on importing it into IntelliJ to rebuild it (Build / Rebuild Project).
+
+On doing so I hit this problem described in the [SO question "Error:... not found: type EventBatch"](http://stackoverflow.com/questions/33311794/import-spark-source-code-into-intellj-build-error-not-found-type-sparkflumepr). The accepted answer worked but it's a little unclear - here's exactly what I did in the end:
+
+Went to File / Project Structure... Then to Project Settings / Modules. Selected spark-streaming-flume-sink. Selected `target` - which was marked as excluded. I untoggled the Excluded button for it. Then I selected all the directories immediately below `target`, except for `scala-2.11`, and marked them as excluded. I then expanded `scala-2.11` and marked its immediate directories, except for `src_managed`, as excluded. I then expanded `src_managed` and selected `compiled_avro` and toggled the Sources button for it to mark it as a source directory. Then once I'd pressed OK I went back to Build / Rebuild Project - and everything compiled fine.
+
+I then navigated to the `org.apache.spark.deploy.master.Master` companion object and ran it.
+
+You then see:
+
+    Exception in thread "main" java.lang.NoClassDefFoundError: com/google/common/cache/CacheLoader
+
+The reason for this is fairly clear - if on the command line you do:
+
+    $ cd core
+    $ mvn dependency:tree
+
+You'll see all the dependencies are marked as `compile`, i.e. they shouldn't be used at runtime.
+
+Oddly I couldn't find any clear answer to what to do about this - one could edit the pom (or more precisely its parent pom) to change the scope from `compile` but this is called the naive approach on the JetBrains/intellij-scala wiki page [How to use provided libraries in run configurations](https://github.com/JetBrains/intellij-scala/wiki/%5BSBT%5D-How-to-use-provided-libraries-in-run-configurations).
+
+While this page specifically mentions the Spark project it describes an SBT solution - as the Spark project uses Maven it's not clear how one can apply the approach described there.
+
+In the end I just searched to see if these jars had been grouped up together by the Maven process in any subdirectory of the Spark project:
+
+    $ find . -name 'guava*.jar'
+    ./assembly/target/scala-2.11/jars/guava-14.0.1.jar
+    ./core/target/jars/guava-14.0.1.jar
+
+I chose the directory under `assembly` as it appeared to have all the jars of interest. Then in the Project window I right clicked on core, went to Open Module Settings, selected the Dependencies tab, selected the last entry in the list and pressed `+` to add an entry below it. On pressing `+` I selected JARs or directories... and navigated to the `jars` folder down below `assembly` and then after pressing OK changed its scope to Runtime.
+
+After a long indexing pause, I ran `Master` again - this kicked off a rebuild again.
+
+Then I went to Run / Edit Configurations and set the Program Arguments to `--host <MyHostName> --port 7077 --webui-port 8080`, i.e. the arguments you see if you run `start-master.sh` and then use `ps -ef` to see the arguments passed the JVM that's started.
+
+Note that without any arguments it uses the public IP of your machine for the Spark master URI and uses 6066 rather than 7077 for the REST server port.
+
+So it's the `start-master.sh` explicitly passing in a hostname that causes the issue that it uses a name that resolves to the loopback address on Ubuntu and Debian systems (that have no FQDN and/or static IP).
+
+Avahi aliases
+-------------
+
+In addition to the normal advertising of a machine's hostname it would be nice if one could be nice to advertise CNAMEs, i.e. aliases, e.g. `spark-master.local`.
+
+Avahi doesn't seem to support it locally but there (now offline) website hosted a Python script that would do this:
+
+* <https://web.archive.org/web/20151016190620/http://www.avahi.org/wiki/Examples/PythonPublishAlias>
+
+Note that the script depends on avahi and dbus imports - the python-avahi package is listed as a dependency for most of the following projects so presumably it provides the avahi import.
+
+Various people seem to have taken this script and extended it:
+
+* [airtonix/avahi-aliases](https://github.com/airtonix/avahi-aliases) - the last commit was in 2013 - various people have forked it - looking at the Github fork graph the most interesting ones (in terms of numbers of commits are):
+  * a [systemd version](https://github.com/5sw/avahi-aliases) (however it forked before development of the Airtronix version stopped and didn't pull in changes from Airtronix).
+  * [till/avahi-aliases](https://github.com/till/avahi-aliases)
+  * [PraxisLabs/avahi-aliases](https://github.com/PraxisLabs/avahi-aliases)
+* [jinko/avahi-alias](https://github.com/jinnko/avahi-alias) - the last commit was in 2012 - further development occurred on the [avahi-alias](https://github.com/asharpe/avahi-alias) fork.
+
+Note: that Jinko's project name ends in "alias" while the Airtronix one ends in "alias" - they seem entirely unrelated - though both look to be built off the original Avahi wiki example.
+
+This UNIX stackexchange question _claims_ that the Airtronix version is less capable that the original Avahi wiki example.

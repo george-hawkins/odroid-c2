@@ -1,0 +1,22 @@
+#!/bin/bash -e
+
+if [ $# -ne 2 ]
+then
+    echo "Usage: $0 /dev/disk/by-id/<disk-name> backup-dir" 1>&2
+    exit 1
+fi
+
+DISK="$1"
+DIR=$2
+
+DISK="$(readlink -f $DISK)"
+
+if [ ! -e "${DISK}1" ]
+then
+    echo "Error: ${DISK}1 does not exist" 1>&2
+    exit 1
+fi
+
+sudo sfdisk "$DISK" < $DIR/partition-table.txt
+xzcat $DIR/boot.img.xz | sudo dd bs=1M conv=fsync of="${DISK}1"
+sudo fsarchiver restfs $DIR/rootfs.fsa id=0,dest="${DISK}2"

@@ -1,0 +1,18 @@
+[Unit]
+Description=Spark Slave
+After=network.target
+After=systemd-user-sessions.service
+
+[Service]
+User=spark
+Type=forking
+ExecStart=/home/spark/spark-2.1.0-bin-hadoop2.7/sbin/start-slave.sh spark://192.168.1.133:7077
+ExecStop=/home/spark/spark-2.1.0-bin-hadoop2.7/sbin/stop-slave.sh
+Restart=on-failure
+RestartSec=15
+
+# stop-slave.sh sends SIGTERM (15) to the slave and the slave exits with 128 plus the signal value.
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target

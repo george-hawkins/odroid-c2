@@ -1,7 +1,7 @@
 [Unit]
 Description=Turn off blue LED
-After=multi-user.target
-# Setting 'After' to the same value as 'WantedBy' means this service will run after everything else configured for the given target.
+After=ssh.service
+# Turn off LED once ssh access is ready.
 
 # Package installed service files are found in /lib/systemd/system
 #
