@@ -364,6 +364,26 @@ Assuming the Odroid system is already up and running the additional step to setu
 
 ---
 
+Armbian optimizations
+---------------------
+
+The [Armbian project](https://www.armbian.com/) produces lightweight distributions based on Xenial for ARM development boards including the Odroid C2. I haven't tried the distribution itself - but the [board specific notes](https://docs.armbian.com/board_details/odroidc2/) for the Odroid C2 includes some usefule information.
+
+Running in headerless mode:
+
+    # sed -i 's/setenv nographics "0"/setenv nographics "1"/' /media/boot/boot.ini
+
+This frees up a really substantial amount of RAM - 267MB according to `free` (comparing the difference between a clean booted system before and after the change).
+
+Turn off the USB hub:
+
+    # echo 126 > /sys/class/gpio/export
+    # /bin/sh -c 'echo 0 > /sys/class/gpio/gpio126/value'
+
+This should save 170mW - my power monitor showed about 155mW - a 7% power saving. Turning off graphics should apparently have saved a similar amount, but while I saw the expected memory saving, I didn't see any change in power consumption.
+
+---
+
 Backup
 ------
 
@@ -425,6 +445,7 @@ Download a prebuilt Spark distribution and install it on the Odroid:
     $ tar -xf spark-2.1.0-bin-hadoop2.7.tgz
     $ rm spark-2.1.0-bin-hadoop2.7.tgz
     $ cd spark-2.1.0-bin-hadoop2.7
+    $ ln -s $PWD ~/spark-home
     $ ./sbin/start-slave.sh spark://192.168.1.133:7077
     $ cat logs/*worker*.out
 
@@ -434,16 +455,24 @@ Note: `spark-2.1.0-bin-hadoop2.7` is fairly substantial - it contains lots of ex
 
 I.e. it depends on multiple jars in the the `jars` directory, rather than using e.g. a fat jar. So in the end all I remove is the original tar file.
 
+Note: the soft link `spark-home` is used by the `spark-slave.service` unit file installed later.
+
 Now stop things, exit and copy over the Spark slave systemd unit file and set things up for automatic startup on boot:
 
     $ ./sbin/stop-slave.sh 
     $ exit
+
+The systemd unit file specifies that the Spark master is running on `spark-master.local`. You can setup the master to advertise this mDNS name (this is described elsewhere). But if the master is not advertising this name then you'll need to edit `spark-slave.service` to replace `spark-master.local` with the IP address of the master (or its DNS resolvable name if it has one) before copying it to the Odroid C2.
 
     $ scp spark-slave.service spark@192.168.1.240:
     $ ssh spark@192.168.1.240
 
     $ sudo mv spark-slave.service /etc/systemd/system
     $ sudo systemctl daemon-reload
+
+If you are using an mDNS name, i.e. `spark-master.local`, in `spark-slave.service` then you'll need to install `avahi-daemon` so the name can be resolved:
+
+    $ sudo apt-get install avahi-daemon
 
 Start the service, check the status, stop it and again check the status:
 
@@ -461,7 +490,8 @@ If you open the web UI for the master in your browser you should see the slave c
 
 TODO:
 
-* Uses avahi so you can include nice master URL in spark-slave.service
+* Describe briefly advertising `spark-master.local` with link to <https://github.com/george-hawkins/avahi-aliases-notes>
+* Backup nice clean setup to `spark-slave-odroid-backup` and clone it to the other Odroids.
 * Run benchmark one more time once everything is in octogon - to check power supply and longer cables (without shielding) don't affect things.
 
 ---
@@ -714,26 +744,3 @@ Then I went to Run / Edit Configurations and set the Program Arguments to `--hos
 Note that without any arguments it uses the public IP of your machine for the Spark master URI and uses 6066 rather than 7077 for the REST server port.
 
 So it's the `start-master.sh` explicitly passing in a hostname that causes the issue that it uses a name that resolves to the loopback address on Ubuntu and Debian systems (that have no FQDN and/or static IP).
-
-Avahi aliases
--------------
-
-In addition to the normal advertising of a machine's hostname it would be nice if one could be nice to advertise CNAMEs, i.e. aliases, e.g. `spark-master.local`.
-
-Avahi doesn't seem to support it locally but there (now offline) website hosted a Python script that would do this:
-
-* <https://web.archive.org/web/20151016190620/http://www.avahi.org/wiki/Examples/PythonPublishAlias>
-
-Note that the script depends on avahi and dbus imports - the python-avahi package is listed as a dependency for most of the following projects so presumably it provides the avahi import.
-
-Various people seem to have taken this script and extended it:
-
-* [airtonix/avahi-aliases](https://github.com/airtonix/avahi-aliases) - the last commit was in 2013 - various people have forked it - looking at the Github fork graph the most interesting ones (in terms of numbers of commits are):
-  * a [systemd version](https://github.com/5sw/avahi-aliases) (however it forked before development of the Airtronix version stopped and didn't pull in changes from Airtronix).
-  * [till/avahi-aliases](https://github.com/till/avahi-aliases)
-  * [PraxisLabs/avahi-aliases](https://github.com/PraxisLabs/avahi-aliases)
-* [jinko/avahi-alias](https://github.com/jinnko/avahi-alias) - the last commit was in 2012 - further development occurred on the [avahi-alias](https://github.com/asharpe/avahi-alias) fork.
-
-Note: that Jinko's project name ends in "alias" while the Airtronix one ends in "alias" - they seem entirely unrelated - though both look to be built off the original Avahi wiki example.
-
-This UNIX stackexchange question _claims_ that the Airtronix version is less capable that the original Avahi wiki example.

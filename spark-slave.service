@@ -6,8 +6,8 @@ After=systemd-user-sessions.service
 [Service]
 User=spark
 Type=forking
-ExecStart=/home/spark/spark-2.1.0-bin-hadoop2.7/sbin/start-slave.sh spark://192.168.1.133:7077
-ExecStop=/home/spark/spark-2.1.0-bin-hadoop2.7/sbin/stop-slave.sh
+ExecStart=/home/spark/spark-home/sbin/start-slave.sh spark://spark-master.local:7077
+ExecStop=/home/spark/spark-home/sbin/stop-slave.sh
 Restart=on-failure
 RestartSec=15
 
