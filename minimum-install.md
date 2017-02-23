@@ -382,6 +382,8 @@ Turn off the USB hub:
 
 This should save 170mW - my power monitor showed about 155mW - a 7% power saving. Turning off graphics should apparently have saved a similar amount, but while I saw the expected memory saving, I didn't see any change in power consumption.
 
+Note: turning off USB does not persist across reboots, i.e. it's back on after a reboot. I haven't written a unit file, like the one for the blue LED, to apply this change on every boot.
+
 ---
 
 Backup
@@ -488,10 +490,43 @@ Enable it for automatic start on reboot and then reboot:
 
 If you open the web UI for the master in your browser you should see the slave connect - the Spark slave takes quite a while to startup so this happens a noticeable amount of time after the Odroid has booted.
 
+Final steps
+-----------
+
+Before cloning and copying to other eMMC modules:
+
+    $ sudo systemctl stop spark-slave
+    $ rm spark-home/logs/*
+    $ set +o history
+    $ rm .bash_history
+    $ sudo shutdown now
+
+Once you've ditached the eMMC module and inserted into a card reader on your main machine backup the image (that will then be cloned to further modules) and then change the hostname from `odroid64` to the first in our sequence of names:
+
+    $ ./fs-backup "$DISK" spark-slave-odroid-backup
+    $ ./set-hostname "$DISK" odroid64 spark-slave-1
+
+Label the eMMC module with a sticker marked "1" and then proceed inserting further modules and cloning the image to those modules, giving each a name (and then a sticker):
+
+    $ ./fs-restore "$DISK" spark-slave-odroid-backup
+    $ ./set-hostname "$DISK" odroid64 spark-slave-2
+    $ ./fs-restore "$DISK" spark-slave-odroid-backup
+    $ ./set-hostname "$DISK" odroid64 spark-slave-3
+    $ ./fs-restore "$DISK" spark-slave-odroid-backup
+    $ ./set-hostname "$DISK" odroid64 spark-slave-4
+
+Once their all powered up and you've seen them in action you can shut them all down like so:
+
+    $ for i in 1 2 3 4
+    do
+        ssh -t spark@spark-slave-$i.local sudo shutdown now
+    done
+
+You have to enter the password for sudo for each system (and press enter, tilde, dot to kill each ssh sesssion in turn).
+
 TODO:
 
 * Describe briefly advertising `spark-master.local` with link to <https://github.com/george-hawkins/avahi-aliases-notes>
-* Backup nice clean setup to `spark-slave-odroid-backup` and clone it to the other Odroids.
 * Run benchmark one more time once everything is in octogon - to check power supply and longer cables (without shielding) don't affect things.
 
 ---
