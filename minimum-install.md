@@ -473,8 +473,6 @@ The systemd unit file specifies that the Spark master is running on `spark-maste
     $ sudo mv spark-slave.service /etc/systemd/system
     $ sudo systemctl daemon-reload
 
-TODO: spark-slave.service still belongs to spark rather than root after move.
-
 If you are using an mDNS name, i.e. `spark-master.local`, in `spark-slave.service` then you'll need to install `avahi-daemon` so the name can be resolved:
 
     $ sudo apt-get install avahi-daemon
@@ -599,17 +597,23 @@ Installing the Oracle JDK and Maven:
     $ sudo apt-get install oracle-java8-installer
     $ sudo apt-get install git
     $ sudo apt-get install maven
-    $ JAVA_HOME=/usr/lib/jvm/java-8-oracle mvn -version
+    $ mvn -version
 
 This pulls in about 400MB. Now to clone and compile the benchmarks:
 
     $ git clone https://github.com/george-hawkins/naive-benchmarks.git
-    $ cd naive-benchmarks/
+    $ cd naive-benchmarks
     $ mvn clean compile
 
-To run the benchmarks first run `free -m` and then set `MAVEN_OPTS` according to the value shown as available:
+Now edit `benchmarks-odroid-c2.conf` and change the value for `network.server` to specify another machine on your network where you'll run the simple network server that's needed for the networking part of the benchmarks.
 
-    $ export MAVEN_OPTS='-Xms1600m -Xmx1600m'
+On this other machine also checkout and build the naive-benchmarks repo and then run:
+
+    $ mvn exec:java@network-server
+
+Back on the original machine we'll run the actual benchmarks, first run `free -m` and then set `MAVEN_OPTS` according to the value shown as available:
+
+    $ export MAVEN_OPTS='-Xms1600m -Xmx1900m'
     $ export JAVA_HOME=/usr/lib/jvm/java-8-oracle
     $ time mvn exec:java@benchmarks -Dconfig.file=benchmarks-odroid-c2.conf
 
