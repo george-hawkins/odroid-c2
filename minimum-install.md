@@ -469,8 +469,11 @@ The systemd unit file specifies that the Spark master is running on `spark-maste
     $ scp spark-slave.service spark@192.168.1.240:
     $ ssh spark@192.168.1.240
 
+    $ sudo chown root:root spark-slave.service
     $ sudo mv spark-slave.service /etc/systemd/system
     $ sudo systemctl daemon-reload
+
+TODO: spark-slave.service still belongs to spark rather than root after move.
 
 If you are using an mDNS name, i.e. `spark-master.local`, in `spark-slave.service` then you'll need to install `avahi-daemon` so the name can be resolved:
 
@@ -489,6 +492,38 @@ Enable it for automatic start on reboot and then reboot:
     $ sudo reboot now
 
 If you open the web UI for the master in your browser you should see the slave connect - the Spark slave takes quite a while to startup so this happens a noticeable amount of time after the Odroid has booted.
+
+Broadcast shutdown service
+--------------------------
+
+This step is optional - it makes it more convenient to shutdown a group of machines. It installs a service that will shutdown the machine if a broadcast message is sent to a particular port.
+
+    $ scp broadcast-shutdown.service spark@192.168.1.240:
+    $ ssh spark@192.168.1.240
+
+    $ sudo apt-get install socat
+    $ sudo chown root:root broadcast-shutdown.service
+    $ sudo mv broadcast-shutdown.service /etc/systemd/system
+    $ sudo systemctl daemon-reload
+    $ sudo systemctl enable broadcast-shutdown
+    $ sudo systemctl start broadcast-shutdown
+
+All the service does is run:
+
+    $ socat UDP4-RECVFROM:6666,broadcast,fork SYSTEM:'hostname; shutdown now'
+
+This tells `socat` to listen for broadcast messages on port 6666 and when it receives one it echoes back the hostname and shuts down the machine.
+
+Now any machine on the same subnet can shutdown all machines running this service with the following command (it waits for input so enter anything, e.g. `bye`):
+
+    $ socat STDOUT UDP4-DATAGRAM:255.255.255.255:6666,broadcast
+    bye
+
+This will broadcast the message (in this case `bye`), `socat` will then output the hostnames echoed back by all the machines that were listening for broadcast messages on port 6666.
+
+Press ctrl-D to quit once you've seen all expected machine names output.
+
+See also <https://superuser.com/q/1201197/238591>
 
 Final steps
 -----------
@@ -515,14 +550,10 @@ Label the eMMC module with a sticker marked "1" and then proceed inserting furth
     $ ./fs-restore "$DISK" spark-slave-odroid-backup
     $ ./set-hostname "$DISK" odroid64 spark-slave-4
 
-Once their all powered up and you've seen them in action you can shut them all down like so:
+Once their all powered up and you've seen them in action you can shut them all down as outline above, i.e. like so:
 
-    $ for i in 1 2 3 4
-    do
-        ssh -t spark@spark-slave-$i.local sudo shutdown now
-    done
-
-You have to enter the password for sudo for each system (and press enter, tilde, dot to kill each ssh sesssion in turn).
+    $ socat STDOUT UDP4-DATAGRAM:255.255.255.255:6666,broadcast
+    bye
 
 TODO:
 

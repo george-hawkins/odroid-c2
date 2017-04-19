@@ -1,7 +1,6 @@
 [Unit]
 Description=Spark Slave
 After=network.target
-After=systemd-user-sessions.service
 
 [Service]
 User=spark
