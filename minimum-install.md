@@ -536,18 +536,18 @@ Before cloning and copying to other eMMC modules:
     $ rm .bash_history
     $ sudo shutdown now
 
-Once you've ditached the eMMC module and inserted into a card reader on your main machine backup the image (that will then be cloned to further modules) and then change the hostname from `odroid64` to the first in our sequence of names:
+Once you've detached the eMMC module, and inserted it into a card reader on your main machine, backup the image (that will then be cloned to further modules) and then change the hostname from `odroid64` to the first in our sequence of names:
 
-    $ ./fs-backup "$DISK" spark-slave-odroid-backup
+    $ ./fs-backup "$DISK" images/spark-slave-odroid
     $ ./set-hostname "$DISK" odroid64 spark-slave-1
 
 Label the eMMC module with a sticker marked "1" and then proceed inserting further modules and cloning the image to those modules, giving each a name (and then a sticker):
 
-    $ ./fs-restore "$DISK" spark-slave-odroid-backup
+    $ ./fs-restore "$DISK" images/spark-slave-odroid
     $ ./set-hostname "$DISK" odroid64 spark-slave-2
-    $ ./fs-restore "$DISK" spark-slave-odroid-backup
+    $ ./fs-restore "$DISK" images/spark-slave-odroid
     $ ./set-hostname "$DISK" odroid64 spark-slave-3
-    $ ./fs-restore "$DISK" spark-slave-odroid-backup
+    $ ./fs-restore "$DISK" images/spark-slave-odroid
     $ ./set-hostname "$DISK" odroid64 spark-slave-4
 
 Once their all powered up and you've seen them in action you can shut them all down as outline above, i.e. like so:
