@@ -12,15 +12,15 @@ They are [p2-base-eigths-outline.svg](p2-base-eigths-outline.svg) and [p2-full-o
 SVGs
 ----
 
-<a href="back-plates.svg"><img src="https://rawgit.com/george-hawkins/odroid-c2/master/case/back-plates.svg"></a>
+<a href="back-plates.svg"><img src="back-plates.svg"></a>
 
-<a href="bottom-and-side.svg"><img src="https://rawgit.com/george-hawkins/odroid-c2/master/case/bottom-and-side.svg"></a>
+<a href="bottom-and-side.svg"><img src="bottom-and-side.svg"></a>
 
-<a href="final-parts.svg"><img src="https://rawgit.com/george-hawkins/odroid-c2/master/case/final-parts.svg"></a>
+<a href="final-parts.svg"><img src="final-parts.svg"></a>
 
-<a href="octagon.svg"><img src="https://rawgit.com/george-hawkins/odroid-c2/master/case/octagon.svg"></a>
+<a href="octagon.svg"><img src="octagon.svg"></a>
 
-<a href="top.svg"><img src="https://rawgit.com/george-hawkins/odroid-c2/master/case/top.svg"></a>
+<a href="top.svg"><img src="case/top.svg"></a>
 
 PNG
 ---
