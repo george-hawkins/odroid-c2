@@ -1,5 +1,10 @@
-Minimal Odroid image
-====================
+System setup
+============
+
+There's a lot of basic set up below. The interesting parts come later and involve configuring Spark and controlling the cluster.
+
+Basic setup
+-----------
 
 The normal Odroid image is Ubuntu MATE with a whole load of extras (Kodi etc.) installed.
 
@@ -123,6 +128,12 @@ Attach the eMMC module to the Odroid C2, connect it to the network and power it 
 
     $ nmap -T4 -F 192.168.1.133/24
     $ ssh root@192.168.1.240
+
+Where `192.168.1.133` is your current machine and `/24` indicates you want to search for devices that differ from your IP only in there last 8 bits.  This runs in around 5s on my network.
+
+If you have only one Odroid C2 on the local network then you'll most probably be able to use the nice name `odroid64.lan` rather than an IP address.
+
+Note: [Fing](https://www.fing.io/) for iOS or Android is alos great for finding devices on your netwrok.
 
 It can take a while the device starts up for the first time (it has to resize disks and other things on the first boot).
 

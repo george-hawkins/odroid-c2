@@ -1,30 +1,7 @@
-First turn off the Odroid C2's intense blue LED:
+Odroid standard image vs Ubuntu arm64 cloud server
+==================================================
 
-    $ sudo vi /etc/rc.local
-
-And add the following line before the `exit` line:
-
-    echo none > /sys/class/leds/blue\:heartbeat/trigger
-
-This has the nice side effect that you can see when `rc.local` has completed as the blue LED will go from solid to beating and then go out at this point.
-
----
-
-Finding Odroids
----------------
-
-[Fing](https://www.fing.io/) for iOS or Android is great for this. A command line alternative is nmap. For a quick scan do:
-
-    $ nmap -T4 -F 192.168.1.133/24
-
-Where `192.168.1.133` is your current machine and `/24` indicates you want to search for devices that differ from your IP only in there last 8 bits.  This runs in around 5s on my network.
-
-If you have only one Odroid C2 on the local network then you'll most probably be able to use the nice name `odroid64.lan` rather than an IP address.
-
----
-
-Default states
---------------
+Intial state after installing standard image on Odroid C2 and running cloud server under QEMU.
 
 Odroid C2:
 

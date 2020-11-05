@@ -1,23 +1,44 @@
-Album
+Odroid C2 cluster
+=================
+
+I wanted a proper Spark cluster for the Coursera course on [_Big Data Analysis with Scala and Spark_](https://www.coursera.org/learn/scala-spark-big-data) so I designed a case out of acrylic that could take eight [Odroid C2 SBCs](https://www.hardkernel.com/shop/odroid-c2/). I networked them via a small hub and powered them via a multi-port USB charging device.
+
+I designed the parts in [Inkscape](https://inkscape.org/) and had them cut by [Sculpteo](https://www.sculpteo.com/en/) (for more on Sculpteo and alternatives, see [`cutting-services.md`](cutting-services.md)).
+
+You can see the results below. In the [`setup`](setup) subdirectory, you'll find detailed (if somewhat unorganized) notes on setting up the Odroid C2 for use as devices in the cluster, including setting up Spark, and on managing the cluster from a central device. These instructions include things such as getting the devices to advertise themselves to the central device, as willing to work as part of Spark cluster, and enabling the central device to shutdown the cluster in one operation.
+
+---
+
+_Odroid C2 cluster_  
+![cluster](cluster-photos/cluster.jpg)
+
+_Closeup - inside_  
+![cluster-closeup-inside](cluster-photos/cluster-closeup-inside.jpg)
+
+_Closeup - outside_  
+![cluster-closeup-outside](cluster-photos/cluster-closeup-outside.jpg)
+
+_Networking and power_  
+![networking-and-power](cluster-photos/networking-and-power.jpg)
+
+_Laser-cut acrylic sheet_  
+![laser-cut-sheet](cluster-photos/laser-cut-sheet.jpg)
+
+_Acrylic parts_  
+![acrylic-parts](cluster-photos/acrylic-parts.jpg)
+
+_Assembled case_  
+![acrylic-case-assembled](cluster-photos/acrylic-case-assembled.jpg)
+
+_Mounted Odroids_  
+![mounted-odroids](cluster-photos/mounted-odroids.jpg)
+
+Parts
 -----
 
-To see photos of the resulting case see <https://goo.gl/photos/92pX6dCuFfApXHqb7>
+You can find details of the parts [here](parts/README.md).
 
-Online laser cutting firms
---------------------------
+SVGs
+----
 
-* [Ponoko](https://www.ponoko.com/) and its offshoots [RazorLAB](http://www.razorlab.co.uk/) in the UK, [Formulor](http://www.formulor.de/) in Germany and [Vectorealism](https://en.vectorealism.com/) in Italy.
-
-* [Sculpteo](https://www.sculpteo.com).
-
-Ponoko is a little odd - the .com site only makes you aware of its US and New Zealand operations but will ship anywhere in the world - at a cost. Shipping can be much cheaper, depending on where you are, if you use one of its offshoots RazorLAB, Formulor or Vectorealism.
-
-You can see the shipping costs for Formulor [here](http://www.formulor.de/help_en/cart.html) and for Vectorealism see [here](https://en.vectorealism.com/support/getting-started/costi-di-spedizione/). For Ponoko US/NZ and RazorLAB you'll have to create an account and go through the purchasing process to get to the point where you can see shipping costs.
-
-Note: you can't use the same login for Ponoko and its offshoots, you have to register separate accounts on each, and you can't use the same email address as you used with one when registering with another. At least this is the case with Ponoko and RazorLAB - I haven't registered with Formulor or Vectorealism so it may or not be the same there.
-
-I went with Sculpteo but Ponoko or its offshoots are probably cheaper for many destinations - in particular the US, NZ, UK, Germany and Italy.
-
-### Sizes
-
-Ponoko restricts you to a number of predefined sizes (see [here](http://www.ponoko.com/starter-kits/inkscape#inkscape_section_3)) while Sculpteo does not have such a constraint - it just has an upper size limit of 940x590mm (see [here](https://www.sculpteo.com/en/tutorial/prepare-your-model-laser-cutting-inkscape/)).
+You can find SVGs for the parts and more in the subdirectory [`svg-designs`](svg-designs). Some of the sizes were deduced from the photos in [`odroid-c2-photos`](odroid-c2-photos).
