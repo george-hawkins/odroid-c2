@@ -1,7 +1,7 @@
 Odroid C2 photos
 ================
 
-Photos taken by George Hawkins using a Nikon D3100 on Dec 11, 2016.
+Photos taken using a Nikon D3100 on Dec 11, 2016.
 
 Issues - glare from light sources and shadows.
 

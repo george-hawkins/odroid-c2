@@ -1,11 +1,11 @@
 Odroid C2 cluster
 =================
 
-I wanted a proper Spark cluster for the Coursera course on [_Big Data Analysis with Scala and Spark_](https://www.coursera.org/learn/scala-spark-big-data) so I designed a case out of acrylic that could take eight [Odroid C2 SBCs](https://www.hardkernel.com/shop/odroid-c2/). I networked them via a small hub and powered them via a multi-port USB charging device.
+I wanted a proper Spark cluster for the Coursera course on [_Big Data Analysis with Scala and Spark_](https://www.coursera.org/learn/scala-spark-big-data), so I designed a case out of acrylic that could take eight [Odroid C2 SBCs](https://www.hardkernel.com/shop/odroid-c2/) and went about building a suitable setup. I networked the SBCs via a small hub and powered them via a multi-port USB charging device.
 
 I designed the parts in [Inkscape](https://inkscape.org/) and had them cut by [Sculpteo](https://www.sculpteo.com/en/) (for more on Sculpteo and alternatives, see [`cutting-services.md`](cutting-services.md)).
 
-You can see the results below. In the [`setup`](setup) subdirectory, you'll find detailed (if somewhat unorganized) notes on setting up the Odroid C2 for use as devices in the cluster, including setting up Spark, and on managing the cluster from a central device. These instructions include things such as getting the devices to advertise themselves to the central device, as willing to work as part of Spark cluster, and enabling the central device to shutdown the cluster in one operation.
+You can see the results below. In the [`setup`](setup) subdirectory, you'll find detailed (if somewhat unorganized) notes on setting up the Odroid C2 SBCs for use as devices in the cluster, including setting up Spark, and on managing the cluster from a central device. These instructions include things such as getting the devices to advertise themselves to the central device, as willing to work as part of a Spark cluster, and enabling the central device to shutdown the cluster in one operation.
 
 ---
 

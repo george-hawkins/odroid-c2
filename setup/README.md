@@ -1,7 +1,7 @@
 System setup
 ============
 
-There's a lot of basic set up below. The interesting parts come later and involve configuring Spark and controlling the cluster.
+There's a lot of basic set up below. The interesting parts come much further down and involve configuring Spark and controlling the cluster.
 
 Basic setup
 -----------
